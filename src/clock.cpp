@@ -17,8 +17,6 @@
 
 TFT_eSPI lcd = TFT_eSPI();  // Invoke library, pins defined in User_Setup.h
 TFT_eSprite face = TFT_eSprite(&lcd);
-TFT_eSprite hourNeedle = TFT_eSprite(&lcd);
-TFT_eSprite minuteNeedle = TFT_eSprite(&lcd);
 
 #define HEX_TO_565(c) (((c & 0xf80000) >> 8) + ((c & 0xfc00) >> 5) + ((c & 0xf8) >> 3))
 
@@ -30,10 +28,12 @@ constexpr uint32_t CLOCK_RADIUS = 46;
 
 constexpr uint16_t CLOCK_COLOR_FACE = HEX_TO_565(0x23F6A3);
 
-static void renderFace();
+//static void renderFace();
 static void renderEdges();
-static void renderNeedles();
+//static void renderNeedles();
 
+#define ALPHA_GAIN 1.3f  // Should be 1.0 but 1.3 looks good on my TFT
+                         // Less than 1.0 makes hands look transparent
 
 // Support
 #define ipart(X) ((int16_t)(X))
@@ -84,12 +84,10 @@ void setup() {
   lcd.init();
   lcd.setRotation(1);
   lcd.fillScreen(TFT_BLACK);
-
   renderEdges();
-  renderNeedles();
-  renderFace();
-  lcd.setPivot(CLOCK_RADIUS, CLOCK_RADIUS);
   lcd.loadFont(NotoSansBold15);
+  face.loadFont(NotoSansBold15);
+  face.createSprite(CLOCK_RADIUS * 2, CLOCK_RADIUS * 2);
 }
 
 void renderEdges() {
@@ -114,17 +112,20 @@ uint16_t lookupColor(uint16_t x, uint16_t y) {
     return face.readPixel(x, y);
 }
 
-static void renderFace() {
-  face.createSprite(CLOCK_RADIUS * 2, CLOCK_RADIUS * 2);
+static void drawNeedle(float angle, uint16_t length) {
+    double x = CLOCK_RADIUS + (length * cos(toRad(angle))); 
+    double y = CLOCK_RADIUS + (length * sin(toRad(angle)));
+    drawWideLineAA(CLOCK_RADIUS, CLOCK_RADIUS, x, y, 2., CLOCK_COLOR_FACE);
+}
 
+static void renderFace(float hourAngle, float minuteAngle) {
   face.setSwapBytes(true);
-  //face.pushImage(0,0, 92, 92, rabbit);
   face.pushImage(0,0, 92, 92, CAT_WATCH_FACE);
+  face.setSwapBytes(false);
 
 
-  face.fillCircle(CLOCK_RADIUS, CLOCK_RADIUS, 3, CLOCK_COLOR_FACE);
+  //face.fillCircle(CLOCK_RADIUS, CLOCK_RADIUS, 3, CLOCK_COLOR_FACE);
   face.setTextDatum(MC_DATUM);
-  face.loadFont(NotoSansBold15);
   face.setTextColor(CLOCK_COLOR_FACE); 
   constexpr uint32_t dialOffset = CLOCK_RADIUS - 7;
   for (uint32_t h = 0; h < 12; h++) {
@@ -134,23 +135,16 @@ static void renderFace() {
       uint32_t actualHour = (h + 3) % 12;
       face.drawNumber(actualHour == 0 ? 12 : actualHour, round(x), round(y));
   }
-  face.unloadFont();
+  //face.unloadFont();
+  drawNeedle(hourAngle, CLOCK_RADIUS / 3);
+  drawNeedle(minuteAngle, CLOCK_RADIUS - 16);
+  face.pushSprite(0,0, TFT_TRANSPARENT);
 }
 
 
 
 
 
-static void renderNeedles() {
-  hourNeedle.createSprite(CLOCK_RADIUS / 2, 3);
-  hourNeedle.fillSprite(CLOCK_COLOR_FACE);
-  hourNeedle.fillRect(0,0, 3, 3, TFT_TRANSPARENT);
-  hourNeedle.setPivot(0, 1);
-  minuteNeedle.createSprite(CLOCK_RADIUS - 20, 3);
-  minuteNeedle.fillSprite(CLOCK_COLOR_FACE);
-  minuteNeedle.fillRect(0,0, 3, 3, TFT_TRANSPARENT);
-  minuteNeedle.setPivot(0, 1);
-}
 
 
 
@@ -198,9 +192,12 @@ static void updateProgress(float progress) {
 static uint16_t angle = 0;
 static uint16_t angle2 = 0;
 void loop() {
+    renderFace(angle, angle2);
+    /*
     face.pushSprite(0,0, TFT_TRANSPARENT);
     hourNeedle.pushRotated(angle, TFT_TRANSPARENT);
     minuteNeedle.pushRotated(angle2, TFT_TRANSPARENT);
+    */
     angle = angle >= 360 ? HOUR_ANGLE / 10 : angle + (HOUR_ANGLE / 10);
     angle2 = angle2 >= 360 ? MINUTE_ANGLE : angle2 + MINUTE_ANGLE;
     switch (angle2) {
