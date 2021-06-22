@@ -1,5 +1,6 @@
 #ifndef MAIN
 #include <Arduino.h>
+#include <ezTime.h>
 #include <ESP8266WiFi.h>
 
 #include <TFT_eSPI.h> // Graphics and font library for ST7735 driver chip
@@ -13,6 +14,7 @@
 #include "NotoGiraffe64-flatten.h"
 #include "NotoFrog64-flatten.h"
 #include "NotoFox64-flatten.h"
+#include "secrets.h"
 
 
 TFT_eSPI lcd = TFT_eSPI();  // Invoke library, pins defined in User_Setup.h
@@ -76,11 +78,13 @@ void drawWideLineAA(float ax, float ay, float bx, float by, float r, uint16_t co
   }
 }
 
+Timezone *amsterdam;
+
 
 void setup() {
   Serial.begin(74880); // native to debug output of bootloader
   Serial.println("Starting clock");
-  WiFi.mode(WIFI_OFF);
+  WiFi.begin(WIFI_ACCESPOINT, WIFI_PASSWORD);
   lcd.init();
   lcd.setRotation(1);
   lcd.fillScreen(TFT_BLACK);
@@ -90,6 +94,13 @@ void setup() {
   face.createSprite(CLOCK_RADIUS * 2, CLOCK_RADIUS * 2);
   pinMode(D1, OUTPUT);
   analogWrite(D1, 128);
+  //waitForSync();
+
+  //Serial.println("UTC: " + UTC.dateTime());
+  //Timezone ams;
+  //setInterval(10);
+  setDebug(INFO);
+  //Serial.println("Amsterdam: " + ams.dateTime());
 }
 
 void renderEdges() {
@@ -209,6 +220,14 @@ void loop() {
         case 240: updateStatus(NotoFrog64, "Wakker", TFT_DARKGREEN); break;
     }
     updateProgress((angle2 % 120) / 120.0);
+    events();
+    if (timeStatus() == timeSet && minuteChanged()) {
+      if (amsterdam == nullptr) {
+        amsterdam = new Timezone();
+        amsterdam->setLocation("Europe/Amsterdam");
+      }
+      Serial.println("Amsterdam: " + amsterdam->dateTime());
+    }
     delay(100);
 }
 
