@@ -88,6 +88,8 @@ void setup() {
   lcd.loadFont(NotoSansBold15);
   face.loadFont(NotoSansBold15);
   face.createSprite(CLOCK_RADIUS * 2, CLOCK_RADIUS * 2);
+  pinMode(D1, OUTPUT);
+  analogWrite(D1, 128);
 }
 
 void renderEdges() {
