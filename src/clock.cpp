@@ -28,7 +28,7 @@ constexpr uint32_t HEIGHT = 128;
 //constexpr uint32_t CLOCK_CENTER_Y = CLOCK_CENTER_X;
 constexpr uint32_t CLOCK_RADIUS = 46;
 
-constexpr uint16_t CLOCK_COLOR_FACE = HEX_TO_565(0x23F6A3);
+constexpr uint16_t CLOCK_COLOR_FACE = HEX_TO_565(0x228833);
 
 //static void renderFace();
 static void renderEdges();
