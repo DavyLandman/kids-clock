@@ -93,7 +93,7 @@ void setup() {
   face.loadFont(NotoSansBold15);
   face.createSprite(CLOCK_RADIUS * 2, CLOCK_RADIUS * 2);
   pinMode(D1, OUTPUT);
-  analogWrite(D1, 128);
+  analogWrite(D1, 200);
   //waitForSync();
 
   //Serial.println("UTC: " + UTC.dateTime());
@@ -202,10 +202,26 @@ static void updateProgress(float progress) {
 }
 
 
+static float fixPosition(float x) {
+  if (x <= 90) {
+    return x + 270;
+  }
+  return x - 90;
+}
+
+static void showTime(uint8_t hour, uint8_t minute) {
+  if (hour >= 12) {
+    hour -= 12;
+  }
+  float hourPosition = (360 / 12.0) * (hour + (minute / 60.0));
+
+  renderFace(fixPosition(hourPosition), fixPosition((360 / 60.0) * minute));
+}
+
 static uint16_t angle = 0;
 static uint16_t angle2 = 0;
 void loop() {
-    renderFace(angle, angle2);
+    //renderFace(270, 60);
     /*
     face.pushSprite(0,0, TFT_TRANSPARENT);
     hourNeedle.pushRotated(angle, TFT_TRANSPARENT);
@@ -225,11 +241,14 @@ void loop() {
       if (amsterdam == nullptr) {
         amsterdam = new Timezone();
         amsterdam->setLocation("Europe/Amsterdam");
+        Serial.println("Amsterdam: " + amsterdam->dateTime());
       }
-      Serial.println("Amsterdam: " + amsterdam->dateTime());
+      showTime(amsterdam->hour(), amsterdam->minute());
     }
     delay(100);
 }
+
+
 
 #elif defined(XX)
 
