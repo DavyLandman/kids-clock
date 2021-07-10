@@ -85,12 +85,16 @@ ESP8266WebServer config(80);
 
 static void renderConfigPage();
 static void handleConfigChange();
+static void faviconSVG();
+static void faviconPNG();
+static void readAlarmConfig();
 
 
 void setup() {
   Serial.begin(74880); // native to debug output of bootloader
+  SPIFFS.begin();
   Serial.println("Starting clock");
-  WiFi.hostname("ESP-Clock");
+  WiFi.hostname("KidsClock");
   WiFi.begin(WIFI_ACCESPOINT, WIFI_PASSWORD);
   lcd.init();
   lcd.setRotation(1);
@@ -102,6 +106,7 @@ void setup() {
   pinMode(D1, OUTPUT);
   analogWrite(D1, 200);
   //waitForSync();
+  readAlarmConfig();
 
   //Serial.println("UTC: " + UTC.dateTime());
   //Timezone ams;
@@ -110,6 +115,8 @@ void setup() {
   //Serial.println("Amsterdam: " + ams.dateTime());
   config.on("/", HTTP_GET, renderConfigPage);
   config.on("/set", HTTP_POST, handleConfigChange);
+  config.on("/favicon.svg", HTTP_GET, faviconSVG);
+  config.on("/favicon.png", HTTP_GET, faviconPNG);
   config.onNotFound([] () { config.send(404, "text/plain", "404 Not Found");});
   config.begin();
 }
@@ -118,19 +125,59 @@ static uint16_t sleepTime = 19 * 60;
 static uint16_t awakeTime = 7 * 60;
 static uint16_t awakeTransition = 5;
 
+static uint16_t read16(File & f) {
+  uint8_t buf[2];
+  f.read(buf, 2);
+  return buf[0] | (buf[1] << 8);
+}
+
+static void write16(File & f, uint16_t v) {
+  f.write((uint8_t)(v & 0xFF));
+  f.write((uint8_t)((v >> 8) & 0xFF));
+}
+
+static void readAlarmConfig() {
+  File f = SPIFFS.open("/config.bin", "r");
+  if (!f) {
+    Serial.println("Config file not available");
+    return;
+  }
+  Serial.println("Reading config file");
+  sleepTime = read16(f);
+  awakeTime = read16(f);
+  awakeTransition = read16(f);
+  f.close();
+}
+
+void writeAlarmConfig() {
+  File f = SPIFFS.open("/config.bin", "w");
+  if (!f) {
+    Serial.println("Error opening config file");
+    return;
+  }
+  write16(f, sleepTime);
+  write16(f, awakeTime);
+  write16(f, awakeTransition);
+  f.close();
+}
+
 static void renderConfigPage() {
   char buffer[2048];
   int generated = sprintf(buffer, "<!DOCTYPE html>"
-    "<html lang=\"nl\"><head><title>Clock</title>"
+    "<html lang=\"nl\"><head><title>Kids Clock</title>"
+    "<meta charset=\"UTF-8\">"
     "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
     "<link rel=\"stylesheet\" href=\"https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.css\">"
     "<link rel=\"stylesheet\" href=\"https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.14.0/css/all.css\">"
+    "<link rel=\"icon\" type=\"image/svg+xml\" href=\"/favicon.svg\">"
+    "<link rel=\"icon\" type=\"image/png\" href=\"/favicon.png\">"
     "<style>"
       "@import url('https://fonts.googleapis.com/css2?family=Noto+Sans&display=swap');"
       "body{ font-family: 'Noto Sans', sans-serif; margin: 1em; line-height: 1.2; }"
       ".entry{ display: block; margin: 0.5em; }"
     "</style></head>"
-    "<body><h1>Configure Clock</h1>"
+    "<body>"
+    "<img src=\"/favicon.svg\" width=\"100%\" style=\"max-width: 200px; margin: 0 auto; display: block;\"/>"
     "<form action=\"/set\" method=\"POST\">"
     "<span class=\"entry\"><label for=\"sleep\">Sleep</label><input id=\"sleep\" name=\"sleep\" type=\"time\" value=\"%02d:%02d\"/></span>"
     "<span class=\"entry\"><label for=\"awakeTransition\">Awake transition</label><input id=\"awakeTransition\" name=\"awakeTransition\" type=\"number\" style=\"width:3em\" value=\"%d\"/> minutes</span>"
@@ -142,16 +189,26 @@ static void renderConfigPage() {
   config.send(200, "text/html", buffer, generated);
 }
 
+static void faviconSVG() {
+  File f = SPIFFS.open("/favicon.svg", "r");
+  config.streamFile(f, "image/svg+xml");
+  f.close();
+}
+static void faviconPNG() {
+  File f = SPIFFS.open("/favicon.png", "r");
+  config.streamFile(f, "image/png");
+  f.close();
+}
+
 static long parseTime(const String & arg) {
-  Serial.println(arg);
   return (arg.substring(0, 2).toInt() * 60) + arg.substring(3).toInt();
 }
 
 static void handleConfigChange() {
-  //Serial.println(config.header());
   sleepTime = parseTime(config.arg("sleep"));
   awakeTime = parseTime(config.arg("awake"));
   awakeTransition = config.arg("awakeTransition").toInt();
+  writeAlarmConfig();
   config.sendHeader("Location", String("/"), true);
   config.send(302, "text/plain", "");
 }
