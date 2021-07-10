@@ -2,6 +2,7 @@
 #include <Arduino.h>
 #include <ezTime.h>
 #include <ESP8266WiFi.h>
+#include <ESP8266WebServer.h>
 
 #include <TFT_eSPI.h> // Graphics and font library for ST7735 driver chip
 #include <SPI.h>
@@ -80,10 +81,16 @@ void drawWideLineAA(float ax, float ay, float bx, float by, float r, uint16_t co
 
 Timezone *amsterdam;
 
+ESP8266WebServer config(80);
+
+static void renderConfigPage();
+static void handleConfigChange();
+
 
 void setup() {
   Serial.begin(74880); // native to debug output of bootloader
   Serial.println("Starting clock");
+  WiFi.hostname("ESP-Clock");
   WiFi.begin(WIFI_ACCESPOINT, WIFI_PASSWORD);
   lcd.init();
   lcd.setRotation(1);
@@ -101,7 +108,54 @@ void setup() {
   //setInterval(10);
   setDebug(INFO);
   //Serial.println("Amsterdam: " + ams.dateTime());
+  config.on("/", HTTP_GET, renderConfigPage);
+  config.on("/set", HTTP_POST, handleConfigChange);
+  config.onNotFound([] () { config.send(404, "text/plain", "404 Not Found");});
+  config.begin();
 }
+
+static uint16_t sleepTime = 19 * 60;
+static uint16_t awakeTime = 7 * 60;
+static uint16_t awakeTransition = 5;
+
+static void renderConfigPage() {
+  char buffer[2048];
+  int generated = sprintf(buffer, "<!DOCTYPE html>"
+    "<html lang=\"nl\"><head><title>Clock</title>"
+    "<meta name=\"viewport\" content=\"width=device-width, initial-scale=1\">"
+    "<link rel=\"stylesheet\" href=\"https://cdnjs.cloudflare.com/ajax/libs/normalize/8.0.1/normalize.css\">"
+    "<link rel=\"stylesheet\" href=\"https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.14.0/css/all.css\">"
+    "<style>"
+      "@import url('https://fonts.googleapis.com/css2?family=Noto+Sans&display=swap');"
+      "body{ font-family: 'Noto Sans', sans-serif; margin: 1em; line-height: 1.2; }"
+      ".entry{ display: block; margin: 0.5em; }"
+    "</style></head>"
+    "<body><h1>Configure Clock</h1>"
+    "<form action=\"/set\" method=\"POST\">"
+    "<span class=\"entry\"><label for=\"sleep\">Sleep</label><input id=\"sleep\" name=\"sleep\" type=\"time\" value=\"%02d:%02d\"/></span>"
+    "<span class=\"entry\"><label for=\"awakeTransition\">Awake transition</label><input id=\"awakeTransition\" name=\"awakeTransition\" type=\"number\" style=\"width:3em\" value=\"%d\"/> minutes</span>"
+    "<span class=\"entry\"><label for=\"awake\">Awake</label><input id=\"awake\" name=\"awake\" type=\"time\" value=\"%02d:%02d\"/></span>"
+    "<input type=\"submit\" value=\"Change\" style=\"display:block\">"
+    "</form>"
+    "</body></html>"
+  , sleepTime / 60, sleepTime % 60, awakeTransition, awakeTime / 60, awakeTime % 60);
+  config.send(200, "text/html", buffer, generated);
+}
+
+static long parseTime(const String & arg) {
+  Serial.println(arg);
+  return (arg.substring(0, 2).toInt() * 60) + arg.substring(3).toInt();
+}
+
+static void handleConfigChange() {
+  //Serial.println(config.header());
+  sleepTime = parseTime(config.arg("sleep"));
+  awakeTime = parseTime(config.arg("awake"));
+  awakeTransition = config.arg("awakeTransition").toInt();
+  config.sendHeader("Location", String("/"), true);
+  config.send(302, "text/plain", "");
+}
+
 
 void renderEdges() {
     lcd.loadFont(NotoSansBold36);
@@ -236,6 +290,8 @@ void loop() {
         case 240: updateStatus(NotoFrog64, "Wakker", TFT_DARKGREEN); break;
     }
     updateProgress((angle2 % 120) / 120.0);
+    
+    config.handleClient();
     events();
     if (timeStatus() == timeSet && minuteChanged()) {
       if (amsterdam == nullptr) {
