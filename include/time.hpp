@@ -10,7 +10,7 @@ private:
 public:
     Time(const String zone): zone(zone) {
         now = nullptr;
-        setDebug(INFO); // if this is off, it crashes?
+        setDebug(ERROR); // if this is off, it crashes?
     };
     bool process();
     bool didMinuteChanged();

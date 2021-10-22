@@ -15,7 +15,7 @@ bool Time::process() {
 }
 
 bool Time::didMinuteChanged() {
-    return  minuteChanged();
+    return minuteChanged();
 }
 
 uint8_t Time::hour() {
