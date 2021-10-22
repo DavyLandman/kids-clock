@@ -29,6 +29,16 @@
             "projectEnvName": "clock",
             "toolchainBinDir": "C:/Users/Davy/.platformio/packages/toolchain-xtensa/bin",
             "internalConsoleOptions": "openOnSessionStart"
+        },
+        {
+            "type": "platformio-debug",
+            "request": "launch",
+            "name": "PIO Debug (without uploading)",
+            "executable": "C:/Users/Davy/Documents/kids-clock/.pio/build/clock/firmware.elf",
+            "projectEnvName": "clock",
+            "toolchainBinDir": "C:/Users/Davy/.platformio/packages/toolchain-xtensa/bin",
+            "internalConsoleOptions": "openOnSessionStart",
+            "loadMode": "manual"
         }
     ]
 }
