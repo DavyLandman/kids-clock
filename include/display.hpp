@@ -30,6 +30,7 @@ private:
 public:
     Display();
     void render(uint8_t hour, uint8_t minute, State state, float progress);
+    void setBrightness(uint8_t brightness); // 0 = background off, 255= full
 };
 
 #endif

@@ -71,7 +71,11 @@ Display::Display() {
   face.loadFont(NotoSansBold15);
   face.createSprite(CLOCK_RADIUS * 2, CLOCK_RADIUS * 2);
   pinMode(D1, OUTPUT);
-  analogWrite(D1, 200);
+  setBrightness(200);
+}
+
+void Display::setBrightness(uint8_t brightness) {
+  analogWrite(D1, brightness);
 }
 
 void Display::render(uint8_t hour, uint8_t minute, State state, float progress) {

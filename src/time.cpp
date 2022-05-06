@@ -30,3 +30,10 @@ uint8_t Time::minute() {
     }
     return now->minute();
 }
+
+uint8_t Time::second() {
+    if (now == nullptr) {
+        return 0;
+    }
+    return now->second();
+}

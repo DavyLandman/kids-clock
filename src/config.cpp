@@ -31,7 +31,7 @@ uint16_t Config::getSleepTime() {
     return sleepTime;
 }
 
-uint16_t Config::getAwakeTransitionSeconds() {
+uint16_t Config::getAwakeTransition() {
     return awakeTransition;
 }
 

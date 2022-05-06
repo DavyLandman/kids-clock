@@ -8,6 +8,6 @@ public:
     void handle();
     uint16_t getSleepTime();
     uint16_t getAwakeTime();
-    uint16_t getAwakeTransitionSeconds();
+    uint16_t getAwakeTransition();
 };
 #endif
